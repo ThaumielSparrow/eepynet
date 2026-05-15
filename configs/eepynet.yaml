@@ -1,0 +1,55 @@
+paths:
+  data_root: data
+  processed_dir: data/processed
+  split_path: splits/sleep_edf_seed42.json
+  output_dir: runs/eepynet
+  checkpoint_dir: runs/eepynet/checkpoints
+
+data:
+  selected_channels: ["EEG Fpz-Cz", "EEG Pz-Oz"]
+  sample_rate: 100
+  epoch_seconds: 30
+  bandpass_low_hz: 0.5
+  bandpass_high_hz: 30.0
+  trim_wake_minutes: 30
+  normalize: per_record_channel_zscore
+  include_studies: null
+
+splits:
+  seed: 42
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+
+dataset:
+  epochs_per_chunk: 128
+  train_stride: 128
+  eval_stride: 128
+  num_workers: 0
+
+model:
+  in_channels: 2
+  num_classes: 5
+  embedding_dim: 192
+  hidden_dim: 192
+  signal_base_channels: 64
+  signal_branch_channels: 32
+  dropout: 0.15
+  group_norm_groups: 8
+
+training:
+  seed: 42
+  device: auto
+  epochs: 100
+  batch_size: 8
+  learning_rate: 0.0003
+  weight_decay: 0.0001
+  mixed_precision: true
+  scheduler: cosine
+  early_stopping_patience: 20
+  monitor: macro_f1
+
+inference:
+  chunk_size: 128
+  stride: 32
+  median_smoothing: 0
