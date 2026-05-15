@@ -19,5 +19,5 @@ def test_get_torch_device_auto_falls_back_to_cpu(monkeypatch):
 def test_get_torch_device_cuda_requires_available_cuda(monkeypatch):
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
-    with pytest.raises(RuntimeError, match="uv sync --no-group torch-cpu --extra cu128"):
+    with pytest.raises(RuntimeError, match="uv sync --extra cu132"):
         get_torch_device("cuda")

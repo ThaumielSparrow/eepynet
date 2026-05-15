@@ -18,23 +18,31 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-cu128 = [
+cpu = [
+    "torch>=2.0",
+]
+cu126 = [
+    "torch>=2.0",
+]
+cu132 = [
     "torch>=2.0",
 ]
 
 [tool.uv]
-default-groups = ["dev", "torch-cpu"]
+default-groups = ["dev"]
 conflicts = [
     [
-        { group = "torch-cpu" },
-        { extra = "cu128" },
+        { extra = "cpu" },
+        { extra = "cu126" },
+        { extra = "cu132" },
     ],
 ]
 
 [tool.uv.sources]
 torch = [
-    { index = "pytorch-cpu", group = "torch-cpu" },
-    { index = "pytorch-cu128", extra = "cu128", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu126", extra = "cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+    { index = "pytorch-cu132", extra = "cu132", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
 ]
 
 [[tool.uv.index]]
@@ -43,16 +51,18 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [[tool.uv.index]]
-name = "pytorch-cu128"
-url = "https://download.pytorch.org/whl/cu128"
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu132"
+url = "https://download.pytorch.org/whl/cu132"
 explicit = true
 
 [dependency-groups]
 dev = [
     "pytest>=8.0",
-]
-torch-cpu = [
-    "torch>=2.0",
 ]
 
 [project.scripts]

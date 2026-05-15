@@ -45,7 +45,7 @@ def get_torch_device(preference: str | None = "auto") -> torch.device:
             raise RuntimeError(
                 "training.device is 'cuda', but torch.cuda.is_available() is false. "
                 "Install a CUDA PyTorch build with "
-                "`uv sync --no-group torch-cpu --extra cu128` or use device=auto/cpu."
+                "`uv sync --extra cu132` or use device=auto/cpu."
             )
         return torch.device("cuda")
     if preference == "cpu":
