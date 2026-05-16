@@ -1,6 +1,6 @@
 paths:
-  data_root: data
-  processed_dir: data/processed
+  data_root: samples
+  processed_dir: samples/processed
   split_path: splits/sleep_edf_seed42.json
   output_dir: runs/eepynet
   checkpoint_dir: runs/eepynet/checkpoints

@@ -3,6 +3,6 @@
 __pycache__/
 *.py[cod]
 
-data/
+samples/
 runs/
 splits/
