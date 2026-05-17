@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import torch
@@ -28,11 +28,13 @@ class SleepEDFChunkDataset(Dataset):
         split: str,
         epochs_per_chunk: int = 128,
         stride: int | None = None,
+        augmenter: Callable[[torch.Tensor], torch.Tensor] | None = None,
     ) -> None:
         self.processed_dir = Path(processed_dir)
         self.epochs_per_chunk = int(epochs_per_chunk)
         self.stride = int(stride or epochs_per_chunk)
         self.split = split
+        self.augmenter = augmenter
         self.manifest = (
             split_manifest
             if isinstance(split_manifest, dict)
@@ -99,8 +101,12 @@ class SleepEDFChunkDataset(Dataset):
         y_chunk[: item.num_epochs] = np.where(valid, y_slice, 0)
         mask[: item.num_epochs] = valid
 
+        x = torch.from_numpy(x_chunk)
+        if self.augmenter is not None:
+            x = self.augmenter(x)
+
         return {
-            "x": torch.from_numpy(x_chunk),
+            "x": x,
             "y": torch.from_numpy(y_chunk),
             "mask": torch.from_numpy(mask),
             "subject_id": item.subject_id,
@@ -124,3 +130,36 @@ def compute_class_counts(
         valid = np.asarray(y) >= 0
         counts += np.bincount(np.asarray(y)[valid], minlength=num_classes)[:num_classes]
     return counts
+
+
+def compute_chunk_sampling_weights(
+    dataset: "SleepEDFChunkDataset",
+    class_weights: np.ndarray | torch.Tensor,
+) -> np.ndarray:
+    """Per-chunk weight = mean per-class weight across the chunk's valid epochs.
+
+    Chunks that contain rare-class epochs (high weight) are drawn more often by
+    :class:`torch.utils.data.WeightedRandomSampler`, which complements (rather than
+    replaces) the per-class weights baked into the loss.
+    """
+
+    if isinstance(class_weights, torch.Tensor):
+        cw = class_weights.detach().cpu().numpy().astype(np.float32)
+    else:
+        cw = np.asarray(class_weights, dtype=np.float32)
+
+    weights = np.zeros(len(dataset.index), dtype=np.float32)
+    y_cache: dict[str, np.ndarray] = {}
+    for i, item in enumerate(dataset.index):
+        if item.record_id not in y_cache:
+            y_cache[item.record_id] = np.load(
+                dataset.processed_dir / item.record_id / "y.npy",
+                mmap_mode="r",
+            )
+        end = item.start_epoch + item.num_epochs
+        y_slice = np.asarray(y_cache[item.record_id][item.start_epoch:end])
+        valid = y_slice >= 0
+        if not valid.any():
+            continue
+        weights[i] = float(cw[y_slice[valid]].mean())
+    return weights

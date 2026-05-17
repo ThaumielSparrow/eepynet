@@ -6,3 +6,6 @@ __pycache__/
 samples/
 runs/
 splits/
+
+.claude/
+CLAUDE.md

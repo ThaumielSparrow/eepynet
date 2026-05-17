@@ -71,6 +71,7 @@ eepynet-make-splits = "eepynet.data.splits:main"
 eepynet-train = "eepynet.training.trainer:main"
 eepynet-eval = "eepynet.training.evaluate:main"
 eepynet-infer = "eepynet.inference.predict:main"
+eepynet-profile = "eepynet.training.profile_run:main"
 
 [build-system]
 requires = ["hatchling"]

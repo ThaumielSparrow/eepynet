@@ -4,19 +4,20 @@ import argparse
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader
 
 from eepynet.config import load_config
 from eepynet.data.dataset import SleepEDFChunkDataset
 from eepynet.models.eepynet import load_model_checkpoint
 from eepynet.training.metrics import save_confusion_matrix_plot
-from eepynet.training.trainer import evaluate_model
+from eepynet.training.trainer import build_dataloader, evaluate_model
 from eepynet.utils import ensure_dir, get_torch_device, save_json
 
 
 def evaluate_checkpoint(config: dict, checkpoint_path: str | Path, split: str) -> dict:
     device = get_torch_device(config["training"].get("device", "auto"))
     use_amp = bool(config["training"].get("mixed_precision", True)) and device.type == "cuda"
+    amp_dtype_name = str(config["training"].get("amp_dtype", "bf16")).lower()
+    amp_dtype = {"bf16": torch.bfloat16, "bfloat16": torch.bfloat16, "fp16": torch.float16, "float16": torch.float16}[amp_dtype_name]
     model, checkpoint = load_model_checkpoint(checkpoint_path, map_location=device)
     model.to(device)
     class_weights = torch.tensor(checkpoint.get("class_weights", []), dtype=torch.float32, device=device)
@@ -30,14 +31,17 @@ def evaluate_checkpoint(config: dict, checkpoint_path: str | Path, split: str) -
         epochs_per_chunk=int(config["dataset"]["epochs_per_chunk"]),
         stride=int(config["dataset"]["eval_stride"]),
     )
-    loader = DataLoader(
-        dataset,
-        batch_size=int(config["training"]["batch_size"]),
-        shuffle=False,
-        num_workers=int(config["dataset"].get("num_workers", 0)),
-        pin_memory=torch.cuda.is_available(),
+    loader = build_dataloader(config, dataset, shuffle=False)
+    focal_gamma = float(config["training"].get("focal_gamma", 0.0))
+    smooth_window = int(config["training"].get("eval_smooth_window", 1))
+    return evaluate_model(
+        model, loader, device,
+        class_weights=class_weights,
+        use_amp=use_amp,
+        amp_dtype=amp_dtype,
+        focal_gamma=focal_gamma,
+        smooth_window=smooth_window,
     )
-    return evaluate_model(model, loader, device, class_weights=class_weights, use_amp=use_amp)
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
